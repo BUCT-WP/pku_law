@@ -2,12 +2,31 @@ import pickle
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
+import os
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
+
+def get_data_file_path(relative_path: str) -> str:
+    """获取数据文件的绝对路径"""
+    if os.path.isabs(relative_path):
+        return relative_path
+    
+    # 相对于项目根目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, relative_path)
 
 # 加载模型和索引
 model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-index = faiss.read_index('law_index.bin')
 
-with open('metadata.pkl', 'rb') as f:
+# 从环境变量获取文件路径
+faiss_index_path = get_data_file_path(os.getenv("FAISS_INDEX_PATH", "law_index.bin"))
+metadata_path = get_data_file_path(os.getenv("METADATA_PATH", "metadata.pkl"))
+
+index = faiss.read_index(faiss_index_path)
+
+with open(metadata_path, 'rb') as f:
     metadata = pickle.load(f)
 
 # 查询

@@ -5,13 +5,27 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
+
+def get_data_file_path(relative_path: str) -> str:
+    """获取数据文件的绝对路径"""
+    if os.path.isabs(relative_path):
+        return relative_path
+    
+    # 相对于项目根目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, relative_path)
 
 # ========================
 # 配置参数
 # ========================
 INPUT_DIR = './law'            # 存放法律文件的目录
-INDEX_PATH = 'law_index.bin'    # FAISS 索引保存路径
-METADATA_PATH = 'metadata.pkl'  # 元数据保存路径
+# 从环境变量获取文件路径
+INDEX_PATH = get_data_file_path(os.getenv("FAISS_INDEX_PATH", "law_index.bin"))
+METADATA_PATH = get_data_file_path(os.getenv("METADATA_PATH", "metadata.pkl"))
 MODEL_NAME = 'paraphrase-multilingual-MiniLM-L12-v2'  # 多语言句向量模型
 
 # ========================

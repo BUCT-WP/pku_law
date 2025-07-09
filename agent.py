@@ -47,8 +47,32 @@ class ConversationContext:
 class FAISSRetriever:
     """FAISS检索器"""
     
-    def __init__(self, index_path: str = 'law_index.bin', metadata_path: str = 'metadata.pkl'):
+    def __init__(self, index_path: str = None, metadata_path: str = None):
         self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        
+        # 如果没有提供路径，使用默认值
+        if index_path is None:
+            index_path = 'law_index.bin'
+        if metadata_path is None:
+            metadata_path = 'metadata.pkl'
+        
+        # 如果是相对路径，转换为绝对路径
+        if not os.path.isabs(index_path):
+            # 相对于当前脚本目录
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            index_path = os.path.join(script_dir, index_path)
+        
+        if not os.path.isabs(metadata_path):
+            # 相对于当前脚本目录
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            metadata_path = os.path.join(script_dir, metadata_path)
+        
+        # 检查文件是否存在
+        if not os.path.exists(index_path):
+            raise FileNotFoundError(f"FAISS index file not found: {index_path}")
+        if not os.path.exists(metadata_path):
+            raise FileNotFoundError(f"Metadata file not found: {metadata_path}")
+        
         self.index = faiss.read_index(index_path)
         
         with open(metadata_path, 'rb') as f:
@@ -193,19 +217,42 @@ class SummaryAgent:
 class LegalConsultationSystem:
     """法律咨询系统主类"""
     
-    def __init__(self, openai_api_key: str):
+    def _get_data_file_path(self, relative_path: str) -> str:
+        """获取数据文件的绝对路径"""
+        # 如果已经是绝对路径，直接返回
+        if os.path.isabs(relative_path):
+            return relative_path
+        
+        # 否则相对于项目根目录
+        # 获取当前文件所在目录（agent.py所在目录）
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # 项目根目录就是当前目录
+        project_root = current_dir
+        
+        return os.path.join(project_root, relative_path)
+    
+    def __init__(self, openai_api_key: str, index_path: str = None, metadata_path: str = None):
         # 初始化LLM
+        base_url = os.getenv("OPENAI_BASE_URL", "https://api.siliconflow.cn/v1")
+        model_name = os.getenv("OPENAI_MODEL", "Tongyi-Zhiwen/QwenLong-L1-32B")
+        
         self.llm = ChatOpenAI(
             openai_api_key=openai_api_key,
-            base_url="https://api.siliconflow.cn/v1",
-            model_name="Tongyi-Zhiwen/QwenLong-L1-32B",
+            base_url=base_url,
+            model_name=model_name,
             temperature=0.1,
             streaming=True,
             callbacks=[StreamingStdOutCallbackHandler()]
         )
         
+        # 获取数据文件路径
+        if index_path is None:
+            index_path = self._get_data_file_path(os.getenv("FAISS_INDEX_PATH", "law_index.bin"))
+        if metadata_path is None:
+            metadata_path = self._get_data_file_path(os.getenv("METADATA_PATH", "metadata.pkl"))
+        
         # 初始化各个Agent
-        self.retriever = FAISSRetriever()
+        self.retriever = FAISSRetriever(index_path, metadata_path)
         self.retrieval_agent = RetrievalAgent(self.retriever)
         self.qa_agent = QAAgent(self.llm)
         self.summary_agent = SummaryAgent(self.llm)
