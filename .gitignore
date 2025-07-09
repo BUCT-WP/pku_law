@@ -61,3 +61,13 @@ logs/
 *.tmp
 *.temp
 temp/
+
+# 环境变量和配置文件
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+config.ini
+secrets.json
