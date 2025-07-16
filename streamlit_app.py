@@ -216,7 +216,7 @@ class LegalConsultationClient:
         try:
             response = requests.get(
                 f"{self.base_url}/sessions/{session_id}/summary",
-                timeout=20
+                timeout=120  # 增加超时时间到120秒，因为生成总结可能需要较长时间
             )
             
             if response.status_code == 200:
@@ -678,6 +678,11 @@ def display_summary_interface():
         st.warning("⚠️ 当前会话没有对话内容")
         return
     
+    # 检查是否有足够的对话内容
+    user_messages = [m for m in st.session_state.messages if m['role'] == 'user']
+    if len(user_messages) < 2:
+        st.warning("⚠️ 对话内容太少，建议至少进行2轮对话后再生成总结")
+    
     col1, col2 = st.columns([3, 1])
     
     with col1:
@@ -687,11 +692,35 @@ def display_summary_interface():
     
     with col2:
         if st.button("📋 生成总结", use_container_width=True):
-            with st.spinner("📝 正在生成会话总结..."):
+            # 显示预估时间提示
+            with st.info("⏱️ 正在生成会话总结，预计需要30-60秒，请耐心等待..."):
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # 模拟进度条
+                for i in range(100):
+                    progress_bar.progress(i + 1)
+                    if i < 20:
+                        status_text.text("� 分析对话内容...")
+                    elif i < 50:
+                        status_text.text("🤖 AI正在理解对话主题...")
+                    elif i < 80:
+                        status_text.text("📝 生成总结中...")
+                    else:
+                        status_text.text("✅ 即将完成...")
+                    time.sleep(0.1)
+                
+                # 调用API生成总结
                 result = st.session_state.client.get_session_summary(st.session_state.session_id)
+                
+                # 清除进度条
+                progress_bar.empty()
+                status_text.empty()
             
             if result["success"]:
                 summary_data = result["data"]
+                
+                st.success("✅ 会话总结生成成功！")
                 
                 st.markdown("### 📋 会话总结")
                 st.markdown(f"""
@@ -701,8 +730,25 @@ def display_summary_interface():
                 """, unsafe_allow_html=True)
                 
                 st.markdown(f"**生成时间:** {summary_data['timestamp']}")
+                
+                # 添加下载按钮
+                summary_text = f"会话总结\n会话ID: {st.session_state.session_id}\n生成时间: {summary_data['timestamp']}\n\n{summary_data['summary']}"
+                st.download_button(
+                    label="📥 下载总结",
+                    data=summary_text,
+                    file_name=f"session_summary_{st.session_state.session_id[:8]}.txt",
+                    mime="text/plain"
+                )
             else:
                 st.error(f"❌ 生成总结失败: {result['error']}")
+                
+                # 提供重试建议
+                if "timeout" in result['error'].lower():
+                    st.info("💡 **建议:** 网络超时可能是由于对话内容较多导致的，请稍后重试。如果问题持续，可以尝试重新开始对话。")
+                elif "connection" in result['error'].lower():
+                    st.info("💡 **建议:** 连接失败，请检查API服务是否正常运行。")
+                else:
+                    st.info("💡 **建议:** 如果问题持续，请联系管理员或重新开始对话。")
     
     # 显示对话历史统计
     if st.session_state.messages:
