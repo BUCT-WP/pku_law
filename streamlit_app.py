@@ -724,8 +724,26 @@ def display_summary_interface():
                 
                 st.markdown("### 📋 会话总结")
                 st.markdown(f"""
-                <div style="background-color: #e8f5e8; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #4caf50;">
-                    <p style="white-space: pre-wrap; margin: 0;">{summary_data['summary']}</p>
+                <div style="
+                    background-color: #e8f5e8; 
+                    padding: 2rem; 
+                    border-radius: 12px; 
+                    border-left: 4px solid #4caf50;
+                    margin: 1rem 0;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    max-width: 900px;
+                    margin-left: auto;
+                    margin-right: auto;
+                ">
+                    <div style="
+                        white-space: pre-wrap; 
+                        margin: 0;
+                        line-height: 1.6;
+                        font-size: 1.1rem;
+                        color: #2c3e50;
+                        text-align: left;
+                        font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+                    ">{summary_data['summary']}</div>
                 </div>
                 """, unsafe_allow_html=True)
                 

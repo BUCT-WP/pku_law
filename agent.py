@@ -157,7 +157,7 @@ class QAAgent:
 问题：{question}
 
 请根据相关法条，结合对话历史，给出准确、专业的法律建议。如果法条不足以完全回答问题，请明确说明。
-
+不要使用md格式，纯文本输出
 回答："""
         )
         self.qa_chain = LLMChain(llm=self.llm, prompt=self.qa_prompt)
